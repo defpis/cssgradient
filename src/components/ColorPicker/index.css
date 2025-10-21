@@ -1,0 +1,7 @@
+.color-picker {
+  padding: 40px;
+}
+
+.color-picker > * + * {
+  margin-top: 16px;
+}
