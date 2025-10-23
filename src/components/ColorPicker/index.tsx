@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { clamp } from "lodash";
+import React, { useEffect, useRef, useState } from "react";
+import { clamp, isFunction, mapValues, round } from "lodash";
 import "./index.css";
-import { hsv2rgb } from "./utils";
+import { hsv2rgb, rgb2hsv } from "./utils";
 
 function useDrag(props?: {
   value?: { rx?: number; ry?: number };
@@ -116,7 +116,7 @@ function Saturation(props: {
   const { r, g, b } = hsv2rgb(
     props.hsva?.h || 0,
     props.hsva?.s || 0,
-    props.hsva?.v || 0,
+    props.hsva?.v || 0
   );
 
   return (
@@ -212,7 +212,7 @@ function Alpha(props: {
   const { r, g, b } = hsv2rgb(
     props.hsva?.h || 0,
     props.hsva?.s || 0,
-    props.hsva?.v || 0,
+    props.hsva?.v || 0
   );
   const a = props.hsva?.a || 0;
   const rgb = `${r * 255}, ${g * 255}, ${b * 255}`;
@@ -248,16 +248,32 @@ function Alpha(props: {
   );
 }
 
-export default function ColorPicker() {
-  const [hsva, setHsva] = useState<HSVA>({
-    h: 0,
-    s: 1,
-    v: 1,
-    a: 1,
-  });
+export interface RGBA {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
 
-  const { r, g, b } = hsv2rgb(hsva.h, hsva.s, hsva.v);
-  const a = hsva.a;
+// 内部 hsva 归一化到 0-1 之间
+export default function ColorPicker(props: {
+  value: RGBA;
+  onChange: (value: RGBA) => void;
+}) {
+  const { value, onChange } = props;
+
+  const hsva = {
+    ...rgb2hsv(value.r / 255, value.g / 255, value.b / 255),
+    a: value.a,
+  };
+
+  const setHsva = (updater: React.SetStateAction<HSVA>) => {
+    const next = isFunction(updater) ? updater(hsva) : updater;
+    onChange?.({
+      ...mapValues(hsv2rgb(next.h, next.s, next.v), (v) => round(v * 255)),
+      a: round(next.a, 2),
+    });
+  };
 
   return (
     <>
@@ -265,15 +281,6 @@ export default function ColorPicker() {
         <Saturation hsva={hsva} setHsva={setHsva} />
         <Hue hsva={hsva} setHsva={setHsva} />
         <Alpha hsva={hsva} setHsva={setHsva} />
-        <p>{JSON.stringify(hsva)}</p>
-        <div
-          style={{
-            width: 200,
-            height: 200,
-            border: "1px solid #000",
-            background: `rgba(${r * 255}, ${g * 255}, ${b * 255}, ${a})`,
-          }}
-        ></div>
       </div>
     </>
   );

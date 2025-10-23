@@ -1,3 +1,17 @@
 #root {
   @apply h-full;
 }
+
+.color-panel {
+  padding: 20px;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+  border-radius: 8px;
+}
+
+.color-panel > * + * {
+  margin-top: 12px;
+}
