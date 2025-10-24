@@ -15,7 +15,7 @@ export function usePopupColorPicker() {
     initColor: RGBA,
     x: number,
     y: number,
-    onChange: (c: RGBA) => void
+    onChange: (c: RGBA) => void,
   ) => {
     setColor(initColor);
     setPosition({ x, y });

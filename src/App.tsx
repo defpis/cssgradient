@@ -65,7 +65,7 @@ function useColorContext() {
   const ctx = useContext(ColorContext);
   if (!ctx) {
     throw new Error(
-      "useColorContext must be used within ColorContext.Provider"
+      "useColorContext must be used within ColorContext.Provider",
     );
   }
   return ctx;
@@ -97,7 +97,7 @@ function ColorItem(props: { color: RGBA; index: number; isLastOne: boolean }) {
           onClick={(e) => {
             const rect = (e.target as HTMLElement).getBoundingClientRect();
             openPicker(color, rect.right + 8, rect.top, (newColor) =>
-              update(index, newColor)
+              update(index, newColor),
             );
           }}
           title="点击选择颜色"
@@ -198,7 +198,7 @@ export default function App() {
   };
 
   const [gradientType, setGradientType] = useState<"linear" | "radial">(
-    "linear"
+    "linear",
   );
 
   let gradient = "";

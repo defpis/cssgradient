@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { clamp, isFunction, mapValues, round } from "lodash";
 import "./index.css";
 import { hsv2rgb, rgb2hsv } from "./utils";
@@ -61,6 +61,13 @@ function useDrag(props?: {
     if (!parent) return;
     const rect = parent.getBoundingClientRect();
 
+    const down = (e: MouseEvent) => {
+      move(e);
+
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+    };
+
     const move = (e: MouseEvent) => {
       const x = clamp(e.clientX - rect.left, 0, rect.width);
       const y = clamp(e.clientY - rect.top, 0, rect.height);
@@ -74,20 +81,17 @@ function useDrag(props?: {
       onChangeRef.current?.(rx, ry);
     };
 
-    const up = () => {
+    const up = (e: MouseEvent) => {
+      move(e);
+
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
     };
 
-    parent.addEventListener("mousedown", (e: MouseEvent) => {
-      move(e);
-
-      window.addEventListener("mousemove", move);
-      window.addEventListener("mouseup", up);
-    });
+    parent.addEventListener("mousedown", down);
 
     return () => {
-      parent.removeEventListener("mousedown", () => {});
+      parent.removeEventListener("mousedown", down);
     };
   }, []);
 
@@ -116,7 +120,7 @@ function Saturation(props: {
   const { r, g, b } = hsv2rgb(
     props.hsva?.h || 0,
     props.hsva?.s || 0,
-    props.hsva?.v || 0
+    props.hsva?.v || 0,
   );
 
   return (
@@ -212,7 +216,7 @@ function Alpha(props: {
   const { r, g, b } = hsv2rgb(
     props.hsva?.h || 0,
     props.hsva?.s || 0,
-    props.hsva?.v || 0
+    props.hsva?.v || 0,
   );
   const a = props.hsva?.a || 0;
   const rgb = `${r * 255}, ${g * 255}, ${b * 255}`;
@@ -262,15 +266,35 @@ export default function ColorPicker(props: {
 }) {
   const { value, onChange } = props;
 
-  const hsva = {
-    ...rgb2hsv(value.r / 255, value.g / 255, value.b / 255),
-    a: value.a,
-  };
+  const hsvaRef = useRef<HSVA | null>(null);
+
+  const hsva = useMemo(() => {
+    const hsv = rgb2hsv(value.r / 255, value.g / 255, value.b / 255);
+
+    // 当 v=0（全黑）时，h/s 都丢失
+    if (hsv.v === 0) {
+      hsv.s = hsvaRef.current?.s || 0;
+      hsv.h = hsvaRef.current?.h || 0;
+    }
+
+    // 当 s=0（灰阶）时，h 也丢失
+    if (hsv.s === 0) {
+      hsv.h = hsvaRef.current?.h || 0;
+    }
+
+    // 修正 h 在 0 和 1 之间切换时的跳动问题
+    if (hsv.h === 0 || hsv.h === 1) {
+      hsv.h = hsvaRef.current?.h || 0;
+    }
+
+    return { ...hsv, a: value.a };
+  }, [value]);
 
   const setHsva = (updater: React.SetStateAction<HSVA>) => {
     const next = isFunction(updater) ? updater(hsva) : updater;
+    hsvaRef.current = next;
     onChange?.({
-      ...mapValues(hsv2rgb(next.h, next.s, next.v), (v) => round(v * 255)),
+      ...mapValues(hsv2rgb(next.h, next.s, next.v), (v) => round(v * 255, 2)),
       a: round(next.a, 2),
     });
   };
